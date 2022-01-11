@@ -393,9 +393,9 @@ Hauptsächliche Unterschied ist das `call()` eine "Liste"(arg1,arg2,arg3) von Ar
 und `apply()` ein Array mit Argumenten übergibt. 
 * Erstes Argument ist wert von `this` in der func
 * Weitere Argumente von `call` = Argumente der Funktion
-* Weiteres Argument von `apply` = Array mit den Argumenten
-  
-Mit bind wird eine neue Funktion mit dem gebundenem `this` erstellt
+* Weiteres Argument von `apply` = Array mit den Argumenten\
+Mit **call** wird die Funktion Aufgerufen und das übergebene Objekt an `this` gebunden\
+Mit **bind** wird eine neue Instanz der Funktion mit dem gebundenem `this` erstellt
 ```js
 function speak (line) {
     console.log(`The ${this.type} rabbit says '${line}'`)
@@ -406,8 +406,19 @@ speak.call(hungryRabbit, "Burp!") // 'The hungry rabbit says Burp!'
 let whiteRabbit = {type: "white"}
 let boundSpeak = speak.bind(whiteRabbit)
 boundSpeak("Burp!") // The white rabbit says Burp!'
-``` 
 
+// hier wird auf das this im Gültigkeitsbereich der Arrow function bezogen.
+function normalize() {
+    console.log(this.coords.map(e => e / this.length))
+    console.log(this.coords.map(function(e) { return e / this.length }))
+  }
+normalize.call({coords: [0, 2, 3], length: 5})
+// [0, 0.4, 0.6]
+// [NaN, NaN, NaN]
+``` 
+### this in arrow functions 
+This in arrow funktionen bezieht sich immer auf den scope aus dem sie aufgerufen werden. Normale funktionen haben immer ihren eigenen scope, deshalb wird sich ein this in einer normalen Funktion immer auf sie selber beziehen. 
+In einer Arrow function können so auf properites auf dem aufrufenden Objekt zugegriffen werdne. 
 
 # Arrays
 * Sequenzen von Werten
@@ -535,16 +546,133 @@ import {name,draw} from './modules/suqare.js'
 ```
 
 # Prototypen 
-Jedes Objekt "erbt" von Prototypen deshalb hat ein leeres obj eine **toString()** Methode
-    
+Die meisten Objekte haben ein `Protoyp`-Objekt von dem sie "erben".\
+Zu den verschiedenen Protoyp Objekten gehören:
+```js
+// Object.prototype
+Object.getPrototypeOf({}) == Object.protoype
+// >true
+Object.getOwnPropertyNames(Object.prototype)
+// [ 'constructor','hasOwnProperty','isPrototypeOf','propertyIsEnumerable','toString','valueOf', ... ]
 
+// Function.protoype
+Object.getPrototypeOf(Math.max) == Function.prototype
+// >ture
+
+// Array.protoype
+Object.getPrototypeOf([]) == Array.prototype
+// >true
+```
+## Prototypenkette
+Alle prototypen "erben" von ihrem Eltern Objekt und übernehmen dessen methoden können diese aber überschreiben oder eigene Hinzufügen.\
+`Object.prototype`<---`Array.prototype`<---`[1,2,3,4,5]`
+
+## Prototyp Create
+Mit `Object.create` kann ein Objekt mit vorgegebenem Protoypen angelegt werden. 
+```js
+let protoObj = {alfa:1} 
+let obj = Object.create(protoObj)
+obj         // {}
+
+obj.beta = 2
+obj         // {beta: 2}
+obj.alfa    // 1
+```
+
+## Prototyp aus Konstruktor
+* Funktionen können mit `new` aufgerufen werden. ähnlich einem Konstruktor
+* `this` ist dabei das neu angelegte Objekt
+* Konvention ist Konstruktoren mit grossen Anfangsbuchstaben
+```js
+function Person (name){
+    this.name = name
+    this.toString = function () {return `Person with name ${this.name}`}
+} 
+
+let p35 = new Person("John")                   
+console.log(Object.getOwnPropertyNames(p35))   //['name', 'toString']
+console.log(Object.getPrototypeOf(p35))        //{}
+console.log(""+p35)                            //Person with name John
+
+// Bei der obigen Lösung erhält jedes Obj eine eigene toString-Methode was unnötig ist. Gemeinsame Attribute sollten im Prototypen angehängt werden.
+
+function Person (name) {
+    this.name = name
+}
+Person.prototype.toString = function () {
+    return `Person with name '${this.name}'`
+}
+let p35 = new Person("John")
+console.log(Object.getOwnPropertyNames(p35))   //['name']
+console.log(Object.getPrototypeOf(p35))        //{toString:[Function (annonymous)]}
+console.log(""+p35)                            //Person with name John
+```
+
+## Protoypen-Kette 
+![Prototyp Kette](./resources/prototyp-kette.png "Prototyp Kette")
+
+
+# Klassen
+```js
+class Person {
+    constructor (name) {
+        this.name = name
+    }
+    toString () {
+        return `Person with name '${this.name}'`
+    }
+}
+
+let p35 = new Person("John")
+console.log(p35.toString())     // Person with name 'John'
+```
+## Klassen Vererbung + Getter und Setter
+```js
+class Employee extends Person {
+    constructor (name, salary,percenta) {
+        super(name)
+        this.salary = salary
+    }
+    toString () {
+        return `${super.toString()} and salary ${this.salary}`
+    }
+    get salary100 () {return this.salary}
+    set salary100 (salary) {this.salary = salary}
+}
+let e17 = new Employee("Mary", 7000);
+
+console.log(e17.toString()) // Person with name 'Mary' and salary 7000 */
+console.log(e17.salary)     // 7000
+e17.salary100 = 8000
+console.log(e17.salary100)
+```
 # JSON
 * JavaScript Object Notation
 * Daten-Austauschformat, nicht nur für JS
 * Orientiert an Notation für JS-Objektliterale
+  
+## JSON.stringify 
+* Mit `JSON.stringify` werden Objekte als Strings serialsiert 
+* Methoden werden dabei nicht übernommen
+* Protoypen werden ebenfalls nicht ins JSON übernommen
+* Müssen bei bedarf wieder hergestellt werden
+
+```js
+let data = JSON.parse('{"type":"cat","name":"Mimi","age":3}')
+let protoData = {category: "animal"}
+
+data = Object.assign(Object.create(protoData),data)
+// erstellt ein objekt der Katze { type: 'cat', name: 'Mimi', age: 3 } 
+// erbt aber jetzt von animal
+data.category   // 'animal' 
+```
+
+
 
 # Node.js 
 Asynchrone, ereignisbasierte JavaScript-Laufzeitumgebung welche js code auserhalb eines Browsers ausführen kann.
+
+
 
 ```js
 const http = require('http')
