@@ -668,6 +668,59 @@ data.category   // 'animal'
 ```
 
 
+# Asynchrones Programmieren 
+
+## Callbacks 
+* Ein `Callback` ist eine Funktion, welche als Argument einer anderen Funktion übergeben wird und erst aufgerufen wird, wenn das Ereignis eingetreten ist. 
+* Beispiel: `fs.readFile` mit Callback
+```js
+document.getElementById('button').addEventListener('click',() =>{
+    //callback funktion
+})
+```
+
+## File API
+Datei-Operationen sind in der Regel langsam. Deshalb sollen sie praktisch immer asynchron ausgeführt werden. 
+### Asynchrones Lesen aus Datei
+```js
+// file System library
+const fs = require('fs')
+fs.readFile.('/etc/hosts',"utf8",(err,data) =>{
+    if(err) throw err
+    console.log(data)
+})
+doSomethingElse()
+```
+### File Descriptor
+Methode `open` liefert einen `File Descritor` zurück. 
+```js
+const fs = require('fs')
+fs.open('test.txt','r'(err,fd) => {
+     //fd is our file Descriptor 
+})
+```
+### Datei-Informationen 
+```js
+const fs = require('fs')
+fs.stat('test.txt',(err,stats)=>{
+    if(err)throw err
+    stats.isFile()          // true
+    stats.isDirectory()     // false
+    stats.isSymbolicLink()  // false
+    stats.size()            // 1024000 = ca 1MB
+})
+```
+### Dateien und Pfade
+```js
+const path = require('path')
+const notes = '/users/bkrt/notes.txt'
+
+path.dirname(notes)                         // /users/bkrt
+path.basename(notes)                        // notes.txt
+path.extname(notes)                         // .txt
+path.basename(notes,paht.extname(notes))    // notes
+```
+
 
 # Node.js 
 Asynchrone, ereignisbasierte JavaScript-Laufzeitumgebung welche js code auserhalb eines Browsers ausführen kann.
