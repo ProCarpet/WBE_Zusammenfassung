@@ -669,6 +669,17 @@ data.category   // 'animal'
 
 
 # Asynchrones Programmieren 
+**Ablauf eines JS scripts**
+* Script wird ausgeführt
+* Funktionsaufrufe -> `Call Stack`
+* Callbacks asynchroner Operationen in `Event Queue's` gelegt
+* Wenn Call STack leer ist heist alle synchronen Aufrufe abgearbeitet:
+  * Übergang in eine so genante `Event Loop` 
+  * Callbacks aus Event Queue abgearbeitet
+  * Event Queue leer: Programm beendet.
+  
+**Wichtig Event Loop nicht blockieren!**
+
 
 ## Callbacks 
 * Ein `Callback` ist eine Funktion, welche als Argument einer anderen Funktion übergeben wird und erst aufgerufen wird, wenn das Ereignis eingetreten ist. 
@@ -693,6 +704,7 @@ doSomethingElse()
 ```
 ### File Descriptor
 Methode `open` liefert einen `File Descritor` zurück. 
+
 ```js
 const fs = require('fs')
 fs.open('test.txt','r'(err,fd) => {
@@ -721,6 +733,183 @@ path.extname(notes)                         // .txt
 path.basename(notes,paht.extname(notes))    // notes
 ```
 
+### Dateien Schreiben
+```js
+const fs = require('fs')
+const content = 'Node was here!'
+fs.writeFile('/Users/bkrt/test.txt', content, (err) => {if (err) {
+    console.error(`Failed to write file: ${err}`)
+    return
+    }
+/* file written successfully */
+})
+```
+
+### Streams 
+* Grössere Dateien eher mit Streams lesen 
+* Lesen `Data` und `end` events. 
+
+
+# Event Loop
+![Prototyp Kette](./resources/js_event_loop.png "Prototyp Kette")
+* Script-Aufruf: Event Loop und Datenstrukturen angelegt
+* Script mit synchronen Operationen ausgeführt (Call Stack)
+* Dabei werden die Liste udn Queues ggf. mit Callbacks gefüllt
+* Nach Abschluss des Scripts (Call Stack leer):\
+eintrit in den Event Loop
+* Schleife bis alle Callbacks abgearbeitet sind
+
+## Event Loop: `Timer`
+* Für Callbacks des Zeitgebers (`setTimeout`,`setInterbal`)
+* Sortierte Liste
+ 
+### Setintervall
+* Callback alle n Millisekunden
+* kann mit `clearIntervall` beendet werden
+
+```js
+const id = setIntervall(() =>{
+    // code runs every 2 sec
+},2000)
+```
+### SetTimeout
+* Mit `setTimeout` kann Code definiert werden, der zu einem späteren Zeitpunkt ausgeführt werden soll.
+* Eintrag in die Timer-List, auch wenn Zeit auf 0 gesetz wird
+* Kann mit `clearTimeout` entfernt werden.
+```js
+setTimeout(() => {
+    // runs after 50 ms 
+},50)
+```
+
+## Event Loop `Pending I/O`
+* Von vorhergehenden Durchgängen aufgeschobene Callbacks
+* Beispiel: Fehlermeldungen bestimter TCP-Aufrufe
+
+## Event Loop `Pool Phase`
+* Abarbeiten der `watch_queue` (auch poll_queue)
+* Auf I/O (Verbindungsanfragen etc. warten
+* Wartezeit abhängig vom Füllstand der Timer-Liste und der check_queue
+  
+## Event Loop `Check Phase`
+* Abarbeiten der `check_queu`
+* Callbacks von `setImmediate`
+
+### setImideate
+* Für Callbacks die direkt nach der Poll Phase ausgeführt werden sollen
+* Damit Unterschied zwischen `setImmediate()` und `setTimeout(..,0)`
+
+## Event Loop `Close Phase`
+* Verarbeiten bestimmter close-Events
+* zum Beispiel: `sockets.on('close, ...)`
+
+## nextTickQueue und Promises
+* So früh wie möglich abgearbeitet
+* Nicht Teil der Event Loop
+* Von Node.js nach jedr Operation eingefügt
+
+### nextTickQueue
+* Durch die API `process.nextTick` angelegte callbacks
+* `process.nextTick` daher vor `setImmediate` bearbeitet
+```js
+fs.readFile("nexttick.js",() =>{
+    setTimeout(()       => { console.log('timeout');},0)
+    setImmediate(()     => { console.log('immediate');})
+    process.nextTick(() => { console.log('nexttick'); })
+})
+// Weil das ganze Innerhabl oder nach dem readfile ausgeführt wird was eine I/O ist
+// nexttick
+// immediate 
+// timeout
+```
+### Promises Microtaskqueue 
+* Callbacks von erfüllten/abgewiesenen Promisses
+* Das betrifft die native Promise-API von JS
+* nach den `next-Tick` Callbacks
+```js
+Promise.resolve().then(() => console.log('promise resolved'))
+setImmediate(() => console.log('set immediate'))
+process.nextTick(() => console.log('next tick'))
+setTimeout(() => console.log('set timeout'), 0)
+// next tick
+// promise resolved
+// set timeout
+// set immediate 
+```
+
+## Promises, Async/Await
+* Eingeführt mit ES8
+* Grund einsat von Promises immernoch kompliziert nun Code ähnlich synchronem Code aufgebaut.
+
+```js
+// Bekanntes beispiel 
+const readHosts = () => {
+    readFilePromise('/etc/hosts')
+        .then(console.log)
+        .catch(() => {
+            console.log("Error reading file")
+        })
+}
+//Bit Async / await
+* Mit async/await */
+const readHosts = async () => {
+    try {
+        console.log(await readFilePromise('/etc/hosts'))
+    }
+    catch (err) {
+        console.log("Error reading file")
+    }
+}
+//Beispiel 2 
+function resolveAfter2Seconds (x) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(x)
+        }, 2000)
+    })
+}
+async function add1(x) {
+    var a = resolveAfter2Seconds(20)
+    var b = resolveAfter2Seconds(30)
+    return x + await a + await b
+}
+add1(10).then(console.log)
+```
+Um die async version eines Moduls zu laden kann dies auf folgende art geschehen. 
+```js
+const {readFile} = require("fs").promises
+```
+### Promises 
+* Platzhalter für einen WErt, der erst später voraussichtlich verfügbar sein wird. 
+* Bekanntes Beispiel async lesen mit `fs`-Modul
+
+**Zustände**
+* `pending` = Ausgangszustand
+* `fulfiled`= erfolgreich abgeschlossen
+* `rejected`= ohne Erfolg abgeschlossen 
+
+#### Funktion mit Promisse
+```js
+function readFilePromise (file) {
+    let promise = new Promise(
+        function resolver (resolve, reject) {
+            fs.readFile(file,"utf8", (err, data) => {
+                if (err) reject(err)
+                else resolve(data)
+            })
+        })
+    return promise
+}
+
+readFilePromise('/etc/hosts')
+    .then((data) => { fs.write(data)}) //Wird dem promise als resolve Argument übergeben
+    .catch(() =>{ 
+        console.log("Error reading file")
+    })  // Wird dem Promise als reject Argument übergeben. 
+    
+```
+
+
 
 # Node.js 
 Asynchrone, ereignisbasierte JavaScript-Laufzeitumgebung welche js code auserhalb eines Browsers ausführen kann.
@@ -746,5 +935,199 @@ console.log(`Server running at http://${hostname}:${port}/`)
 Wird über folgenden befehl gestartet *node hello-world.js*\
 Mann kann auch auf der cli eine node repl Instanz laufen lassen mit *node*
 
+# Internet Protokolle
+
+## URL Aufbau
+![Prototyp Kette](./resources/url.png "Prototyp Kette") 
+
+## HTTP
+* Auf port 80 von Host
+* HTTP anfrage wird gesendet 
+
+### HTTP REquest Methoden
+* `GET`: Resourcesn laden
+* `POST`: Informationen senden 
+* `PUT`: Ressource anlegen, überschreiben
+* `PATCH`: Ressource anpassen
+* `DELETE`: Ressource löschen
+```http
+GET /~bkrt/hallo.html HTTP/1.1
+Host: dublin.zhaw.ch
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X...) Gecko/20100101 Firefox
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,
+*/ *;q=0.8
+Accept-Language: de-de,de;q=0.8,en-us;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+```
+
+### HTTP Response Status Codes
+* `1XX`: Inforamtion (z.B. 101 Switching Protocols)
+* `2XX`: Erfolg (z.B. 200 Ok, 204 No Content)
+* `3XX`: Weiterleitung (z.B. Moved Permanently)
+* `4XX`: Fehler in Anfrage (z.B. 403 Forbidden, 404 Not Found)
+* `5XX`: Server-Fehler (z.B. 501 Not Implemented)
+
+# HTML & JS
+Um JS in HTML dokumenten auszuführen muss der code in `script`-Blöcken ausgeführt werden
+```js
+// Code ausführen
+<script>alert("hello!")</script>
+// Code aus einer externen datei ausführen
+<script src="code/hello.js"></script>
+// Code als reaktion auf ein Ereigniss
+<button onclick="alert('Boom!')">DO NOT PRESS</button>
+```
+## Laden von ES-Modulen 
+```js
+<script type="module" src="code/date.js"></script>
+```
+
+## document
+* Repräsentiert die angezeigte Webseite
+* Einstieg ins `DOM` (Document Objevt model)
+```js
+document.cookie         // Zugriff auf Cookies
+document.lastModified   // Zeit der letzten Änderung
+document.links          // die Verweise der Seite 
+document.images         // die Bilder der Seite 
+```
+
+## window
+* repräsentiert das Browserfenster
+```js
+window.document         // zugriff auf document
+window.history          // History obj
+window.innerHeight      // Höhe des Viewport
+```
+
+## location
+* Aktuelle Webadresse im Browser
+* Zugänglich über `window.location` und `document.location`
+```js
+location.href       //"https://gburkert.github.io/selectors/"
+locations.protocl   //"https:"
+```
+
+# DOM document object model 
+* Browser parst HTML-Code 
+* Baut ein Modell der dokumentstruktur auf
+* Basierend auf dem Modell wird die Seite angezeigt
+* Auf diese Datenstruktur haben scripts Zugriff
+* Anpassungen daran wirken sich **live** auf die Anziege aus
+*
+* Jeder Knoten im Baum ist durch ein Objekt repräsentiert
+* Zugriff über das globale Objekt `document`
+* Attribut `documentElement` ist REferenz auf HTML-Knoten 
+  
+## Baumstruktur
+* Jeder Knoten hat ein `nodeType`-Attribut
+* HTML-Elemente haben den `nodeType`1
+
+| NodeType        | Konstante           | Bedeutung          |
+|-----------------|---------------------|--------------------|
+|        1        | Node.Element_NODE   | Elementknoten      |
+|        2        | Node.TEXT_NODE      | Textknoten         |
+|        8        | Node.COMMENT_NODE   | Kommentarknoten    | 
+
+<img src="./resources/baumstruktur.png" alt="drawing" width="400px"/>
+
+## Attribut `childNodes`
+* Instanz von `NodeList`
+* Array-ähnlcih aber kein Array
+* Numerischer Index und `length`-Attribut
+* Alternative: `children`-Attribut
+
+## Element hinzufügen
+1) Element erzeugen: `document.createElement`
+2) Attribute erzeugen: `document.createAttribute`
+3) Und hinzufügen: `<element>.setAttribute`
+4) Element in Baum einfägen `<element.appendChild>`
+
+```js
+// Das zu Kreeirende Node / HTML Element
+<div id="test" class="other-test" style="color:blue">Hallo Welt</div>
+// Erstellen eines Div elements
+let div = document.createElement("div")
+// Hinzufügen der Attribute mit setAttribute
+div.setAttribute("id","test")
+div.setAttribute("class","other-test") 
+
+// Erstellen der Attribute mit umweg über createAttribute 
+let attr1 = document.createAttribute("color")
+attr1.value = "blue"
+// Hinzufügen der erstellten Attribute
+div.setAttributeNode(attr1)
+//innertext setzen
+div.innerText = "Hallo Welt"
+```
+
+## Element Finden
+* Gezielte Suche im ganzen `document` oder Teilbaum
+```js
+// Finde alle Elemente mit ID = 
+let aboutus = document.getElementById("aboutus")
+// Finde alle Elemente mit TagName =
+let aboutlinks = aboutus.getElementsByTagName("a")
+// Finde alle Elemente mit class Attriubt = 
+let aboutimportant = aboutus.getElementsByClassName("important")
+// Finde alle 
+let navlinks = document.querySelectorAll("nav a")
+```
+
+## Dokument Anpassen
+* `document` hat diverse Methoden um Knoten zu Manipulieren
+* Zum Beispiel: `appendChild`,`remove`,`insertBefore`
+
+## Arrays in DOM
+* Datenstrukturen im DOM sind häufig Array-ähnlich
+* Sie haben Zahlen sowie `length` als Attribute
+* Mit `Array.from` könne sie in echte Arrays konvertiert werden.
+  
+## Atribute
+* Viele HTML-Attribute entsprechen Attributen im DOM 
+* Beispiel hier: `href`-Attribut des `a`-Elements 
+```html
+<a href="http://eloquentjavascript.net">here</a>
+```
+```js
+a-element
+    accessKey: ""
+    ...
+    href: "http://eloquentjavascript.net"
+    ... 
+```
+### Attribut `class`
+* Mehrere Klassen durch Leerzeichen getrennt möglich
+* Im DOM zugreifbar über `className` oder `classList`
+* **ACHTUNG** `className` statt `class`(reservierter Name in JS)
+ 
+```html
+<p class="hint info">I also wrote a book!</p>
+```
+```js
+// DOM
+...
+className "hint info"
+...
+```
+## CSS in DOM
+* Brwoser positioniert Elemente im Viewprot
+* Grösse udn Position ebenfalls in DOM-Struktur eingetragen
+* `clientWidth`: Breite von Blockelementten inkl. Padding
+* `offsetWidth`: Breite ink. Border 
 
 
+### `style`
+* Attribut `style` (HTML und DOM)
+* Wert in HTML = String , DOM = Objekt
+* HTML: CSS-Eigenschaften mit Bindestrich: `font-family`
+* DOM: CSS-Eigenschaften in "Camel Case": `fontFamily`
+
+```js
+// Erstellt Objekt, dass das Attr Interface implementiert und mittels setAttributeNode() gesetzt werden kann und fügt dem example element einen style hinzu 
+let attr = document.createAttribute('style')
+attr.value = 'color:blue'
+let el = document.getElementById('example')
+el.setAttributeNode(attr)
+```
