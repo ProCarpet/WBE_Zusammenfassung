@@ -1131,3 +1131,88 @@ attr.value = 'color:blue'
 let el = document.getElementById('example')
 el.setAttributeNode(attr)
 ```
+
+# Event Handling
+* Erstes Argument: Ereignistyp
+* Zweites ARgument: Funktion, die beim Einterten des Events aufgerufen werden soll
+## Event Registrieren DOM
+```html
+<button>Click me</button>
+<p>No handler here.</p>
+<script>
+let button = document.querySelector("button")
+button.addEventListener("click"
+, () => {
+console.log("Button clicked.")
+})
+// oder: button.onclick = () => {...}
+</script>
+```
+## Handler entfernen 
+* Entfernen von Handlern mit `removeEventListener`
+```js
+let button = document.querySelector("button")
+function once () {
+    console.log("Done.")
+    button.removeEventListener("click", once)
+}
+button.addEventListener("click", once)
+```
+## Event-Objekt
+* Nähere Informationen über das eingetretene Ereignis
+* Wird dem Event Handler automatisch übergeben
+* Je nach Ereignistyp verschiedene Attribute wie x,y bei Maus-Event
+
+```js 
+let button = document.querySelector("button")
+button.addEventListener("click", (e) => {
+    console.log("x="+e.x+", y="+e.y)
+})
+```
+
+## Event-Weiterleitung
+* Ereignisse werden für Knoten im DOM-Baum registriert 
+* Reagieren auch, wenn Ereignis an untergeordnetem Knoten auftritt
+* Alle Handler nach oben bis zur Wurzel des Dokuments ausgeführt bis ein Handler `stopPropagation()` auf dem Event-Objekt aufruft. 
+* Element, bei welchem das Ereignis ausgelöst wurde: `event.target`
+* Element, bei welchem das Ereignis registriert wurde: `event.currentTarget`
+
+### Default-Verhalten 
+* Viele EReignisse haben ein Default-Verhalten 
+* Beispiel: auf einen Link klicken
+* Aufruf von `preventDefault()` auf Event-Objekt verhindert Default-Verhalten
+  
+## Tastatur-Events
+* Erreignisse `keydown` und `keyup`
+* Modifier-Tasten als Attribute des Event-Objekts
+* **ACHTUNG `keydown` kann bei längerem Drücken mehrfach auslösen
+
+```js
+window.addEventListener("keydown", event => {
+    if (event.key ==" " && event.ctrlKey) {
+        console.log("Continuing!")
+    }
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
