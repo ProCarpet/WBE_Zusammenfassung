@@ -1131,7 +1131,29 @@ attr.value = 'color:blue'
 let el = document.getElementById('example')
 el.setAttributeNode(attr)
 ```
+## DOM Scripting
 
+```js
+// elt Methode
+function elt (type, attrs, ...children) {
+    let node = document.createElement(type)
+    for (a in attrs) {
+        node.setAttribute(a, attrs[a])
+    }
+    for (let child of children) {
+        if (typeof child != "string") node.appendChild(child)
+        else node.appendChild(document.createTextNode(child))
+    }
+    return node
+}
+```
+* Damit vereinfacht List-Kompenente möglich 
+* DOM-Funktionen in einer Funktion _elt_ gekappselt 
+```js
+function List (data) {
+    return elt("ul", {}, ...data.map(item => elt("li", {}, item)))
+}
+```
 # Event Handling
 * Erstes Argument: Ereignistyp
 * Zweites ARgument: Funktion, die beim Einterten des Events aufgerufen werden soll
@@ -1194,6 +1216,187 @@ window.addEventListener("keydown", event => {
     }
 })
 ```
+
+## Fokus und Lade-Events
+* Fokus erhalten/verlieren `focus`, `blur`
+* Seite wurde geladen: `load`
+  * Ausgelöst auf `window` und `document.body`
+  * Elemente mit externen Resourcen (`img`) unterstützen ebenfalls `load`-events
+* Diese Events werden nicht propagiert
+  
+### Bsp. Bild Laden
+```js
+loadImage('zhaw.png',
+    function onsuccess (img) {
+        document.body.appendChild(img)
+    },
+    function onerror (e) {
+        console.log('Error occured while loading image')
+        console.log(e)
+    }
+)
+// mit Promise
+function loadImage(url) {
+    var promise = new Promise(
+        function resolver(resolve, reject) {
+            var img = new Image()
+            img.src = url
+            img.onload = function () {
+                resolve(img)
+            }
+            img.onerror = function (e) {
+                reject(e)
+            }
+        }
+    )
+    return promise
+}
+loadImage('zhaw.png')
+    .then(function (img) {
+        document.body.appendChild(img)
+    })
+    .catch(function (e) {
+        console.log('Error occured while loading image')
+        console.log(e)
+    })
+```
+
+
+# Formulare 
+* Attribut `action`: Script das die Daten entgegen nimmt.
+* Attribut `method`: HTTP-Methode zum Senden der Daten 
+  * `GET`: Formulardaten an URL anhängen
+  * `POST`: Formulardaten im Body des HTTP-Request gesendet   
+
+```html 
+<form action="/login" method="post">
+...
+</form>
+```
+
+## `label`
+* Das `label`-Elemnt beschreibt ein Formularelemnt
+* Klick auf Label setzt den Fokus auf das Element
+```html
+<form>
+<label>Name: <input type="text"></label>
+<label>Age: <input type="text"></label>
+<input type="submit" value="Send">
+</form>
+```
+<form>
+<label>Name: <input type="text"></label>
+<label>Age: <input type="text"></label>
+<input type="submit" value="Send">
+</form>
+
+### Andere `type` für `label`
+* Ändert z.B Tastaturlayouts für Mobilgeräte
+* Werte: `email`, `url`, `range`, `date`, `search`, `color`,...
+
+### Disabled
+* Attribut `disabled` (braucht keinen Wert)
+* Element ist nicht verwendbar und nicht fokussierbar
+* Darstellung als inaktiv 
+
+```html
+<button>I'm all right</button>
+<button disabled>I'm out</button>
+```
+<button>I'm all right</button>
+<button disabled>I'm out</button>
+
+## Formular-`events`
+* Formularelement geändert:\
+  `change`
+* Eingabe in Textfeld:\
+  `input`
+* Tastendrücke in aktivem Textfeld:\
+  `keydown`, `keypress`, `keyup`
+* Formulare absenden:\
+  `submit`
+
+## Formulardaten Übertragen 
+* Daten via HTTP an den Server übertragen
+* Erforderlich: serverseitige Programmlogik
+* Alternative: clientseitige Verarbeitung von Formulardaten
+* Absenden mit Submit-Button `type="submit"`
+* Löst ein `submit`-Event aus
+* Im Event Handler kann das Absenden verhindert werden (`preventDefault`) 
+
+## `GET`-Methode
+* Formulardaten an URL angehängt (Browser-Adressleiste)
+* Genannt: `Query String`
+* Vor allem für passive Anfragen (z.B eine Suche)
+```html
+GET /cgi/showenv.cgi?login=testuser&password=12345%3F&submit=Anmelden HTTP/1.1
+```
+## `POST`-Mehtode
+* Im Formular wird `mehtod="post"` gesetzt 
+* Formulardaten im Body des HTTP-Request gesendet
+* Um Daten anzulegen oder zu aktualisieren
+* Für **sensitive Daten** (Login) **kein** GET verwenden
+
+# Cookies, Sessions 
+## Cookies
+* Cookies speichern Informationen auf dem Client
+* RFC 2965: HTTP State Management Mechanism 
+* Response: `Set-Cookie`-Header, Request:`Cookie`-Header
+* Zugriff mit JavaScript möglich ausser `HttpOnly` ist gesetzt 
+```js
+allCookies = document.cookie
+```
+![cookies](./resources/cookies.png "cookies") 
+
+# JSX und SJDON
+* Datengesteuert
+* Input: Daten der Applikation 
+* Output: DOM-Struktur für Browser
+
+`(data) => [view]`
+
+## JSX
+* Von React-Komponenten verwendete Syntax
+* Komponente beschreibt DOM-Struktur mittels JSX
+* HTML-Markup gemischt mit eigenen Tags
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
