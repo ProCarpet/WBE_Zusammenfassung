@@ -1360,8 +1360,56 @@ allCookies = document.cookie
 * Komponente beschreibt DOM-Struktur mittels JSX
 * HTML-Markup gemischt mit eigenen Tags
 
+```js
+render((
+    <section>
+        <header>
+            <h1>A Header</h1>
+        </header>
+    </section>
+    ),
+    document.getElementById('app')
+)
+```
+```js
+// Komponenten
+const MyComponent = () => (
+    <section>
+        <h1>My Component</h1>
+        <p>Content in my component...</p>
+    </section>
+)
+render(
+    ( <MyComponent /> ),
+    document.getElementById('app')
+)
+// Dynamische Komponente 
+const List = ({data}) => (
+    <ul>
+        { data.map(item => (<li key={item}>{item}</li>)) }
+    </ul>
+)
+render(
+    ( <List data={["Maria", "Hans", "Eva", "Peter"]} /> ),
+    document.getElementById('app')
+)
+```
+## Vergleich JSX SJDON
 
-
+```JS
+// JSX
+const element = (
+    <div style="background:salmon">
+        <h1>Hello World</h1>
+        <h2 style="text-align:right">from SuiWeb</h2>
+    </div>
+)
+// SJCON
+const element =
+    ["div", {style: "background:salmon"},
+        ["h1", "Hello World"],
+        ["h2", {style: "text-align:right"}, "from SuiWeb"] ]
+```
 
 
 
